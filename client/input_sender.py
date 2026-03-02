@@ -1,13 +1,10 @@
 """
 Capture mouse and keyboard from OpenCV window and send as input events to host.
-Coordinates are in stream/display space (1280x720); host scales to its screen.
+Coordinates are in stream/display space; host scales to its screen.
 """
 import cv2
 from shared.protocol import MSG_INPUT, send_message, build_input_event
-
-# Stream dimensions (must match host)
-STREAM_WIDTH = 1280
-STREAM_HEIGHT = 720
+from shared.stream_config import STREAM_WIDTH, STREAM_HEIGHT
 
 # OpenCV mouse callback state
 _mouse_pos = [0, 0]

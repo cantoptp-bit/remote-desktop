@@ -6,10 +6,10 @@ import cv2
 import numpy as np
 
 from shared.protocol import MSG_FRAME, recv_message
+from shared.stream_config import STREAM_WIDTH, STREAM_HEIGHT
 
-# Display window size (stream is 1280x720; we show at same size or scale)
-DISPLAY_WIDTH = 1280
-DISPLAY_HEIGHT = 720
+DISPLAY_WIDTH = STREAM_WIDTH
+DISPLAY_HEIGHT = STREAM_HEIGHT
 
 
 def decode_frame(payload: bytes):

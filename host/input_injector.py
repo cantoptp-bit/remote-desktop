@@ -9,9 +9,7 @@ import pyautogui
 pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = True  # Move mouse to corner to abort
 
-# Stream dimensions (must match host capture size for correct coordinate scaling)
-STREAM_WIDTH = 1280
-STREAM_HEIGHT = 720
+from shared.stream_config import STREAM_WIDTH, STREAM_HEIGHT
 
 
 def inject_event(payload: bytes, stream_width: int = STREAM_WIDTH, stream_height: int = STREAM_HEIGHT) -> None:

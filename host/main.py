@@ -13,11 +13,11 @@ _root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_root))
 from shared.protocol import MSG_FRAME, MSG_INPUT, send_message, recv_message
 
-from host.capture import capture_frame
+from host.capture import capture_frame, _frame_hash
 from host.input_injector import inject_event, STREAM_WIDTH, STREAM_HEIGHT
 
 DEFAULT_PORT = 8765
-FPS = 12  # Target frames per second
+FPS = 60  # Target frames per second
 
 
 def input_receiver_loop(conn: socket.socket) -> None:
@@ -32,13 +32,17 @@ def input_receiver_loop(conn: socket.socket) -> None:
 
 
 def frame_sender_loop(conn: socket.socket) -> None:
-    """Capture screen and send JPEG frames."""
+    """Capture screen and send JPEG frames. Skip sending when frame unchanged (saves bandwidth)."""
     interval = 1.0 / FPS
+    last_hash = None
     try:
         while True:
             t0 = time.monotonic()
-            jpeg = capture_frame()
-            send_message(conn, MSG_FRAME, jpeg)
+            jpeg, frame = capture_frame()
+            frame_hash = _frame_hash(frame) if frame is not None else None
+            if frame_hash != last_hash or last_hash is None:
+                send_message(conn, MSG_FRAME, jpeg)
+                last_hash = frame_hash
             elapsed = time.monotonic() - t0
             time.sleep(max(0, interval - elapsed))
     except (ConnectionError, BrokenPipeError, OSError):

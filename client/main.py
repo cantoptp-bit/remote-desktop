@@ -113,7 +113,6 @@ def main() -> None:
         host = args[0].strip()
         port = int(args[1]) if len(args) > 1 else DEFAULT_PORT
     allow_local = "--allow-localhost" in sys.argv
-    allow_local = "--allow-localhost" in sys.argv
     if _is_localhost(host) and not allow_local:
         print("You're connecting to this computer (localhost).")
         print("To control another PC: run the HOST on that PC, then run this CLIENT with that PC's IP.")
@@ -125,7 +124,29 @@ def main() -> None:
     try:
         sock.connect((host, port))
     except OSError as e:
+        err = getattr(e, "errno", None)
         print(f"Cannot connect to {host}:{port} - {e}")
+        if err == 65:  # EHOSTUNREACH - No route to host
+            print()
+            print("No route to host — try this:")
+            print("  1. Same network: both computers must be on the same Wi‑Fi/LAN.")
+            print("  2. Firewall on the OTHER computer: allow inbound TCP port", port)
+            print("     Windows: Windows Security → Firewall → Allow an app → allow Python, or add rule for port", port)
+            print("     Mac: System Settings → Network → Firewall → allow Python/incoming.")
+            print("  3. On the other computer run: python -m host.main show-ip")
+            print("     and confirm the IP matches", host)
+        elif err == 61:  # ECONNREFUSED
+            print()
+            print("Connection refused — on the other computer run: python -m host.main")
+        elif err == 60:  # ETIMEDOUT - Operation timed out
+            print()
+            print("Connection timed out — try this:")
+            print("  1. On the OTHER computer, start the host: python -m host.main")
+            print("  2. Check the IP: on the other computer run: python -m host.main show-ip")
+            print("     If the IP changed (e.g. new DHCP), update and try again.")
+            print("  3. Firewall on the other computer: allow inbound TCP port", port)
+            print("     Windows: Windows Security → Firewall → Allow an app → allow Python")
+            print("  4. Same Wi‑Fi/LAN: both machines must be on the same network.")
         sys.exit(1)
     print(f"Connected to {host}:{port}. Press 'q' or Escape in the window to quit.")
     window_title = f"Remote Desktop — {host}"

@@ -5,11 +5,10 @@ import cv2
 import numpy as np
 import mss
 
+from shared.stream_config import STREAM_WIDTH, STREAM_HEIGHT
 
-# Default scale for lower bandwidth (plan: 1280x720)
-DEFAULT_WIDTH = 1280
-DEFAULT_HEIGHT = 720
-JPEG_QUALITY = 70  # 0-100, lower = smaller size, more compression
+# Quality: 82 for sharper image (was 70)
+JPEG_QUALITY = 82
 
 
 def _frame_mean_brightness(frame):
@@ -17,13 +16,19 @@ def _frame_mean_brightness(frame):
     return float(np.mean(frame))
 
 
-def capture_frame(quality: int = JPEG_QUALITY, max_width: int = DEFAULT_WIDTH, max_height: int = DEFAULT_HEIGHT) -> bytes:
+def _frame_hash(frame, size=64):
+    """Fast hash of downscaled frame for change detection."""
+    small = cv2.resize(frame, (size, size), interpolation=cv2.INTER_AREA)
+    gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+    return hash(gray.tobytes())
+
+
+def capture_frame(quality: int = JPEG_QUALITY, max_width: int = STREAM_WIDTH, max_height: int = STREAM_HEIGHT):
     """
-    Capture the primary screen, optionally scale down, encode as JPEG.
-    Returns JPEG bytes. Tries primary monitor first, then fallback if capture is black.
+    Capture the primary screen, scale to stream size, encode as JPEG.
+    Returns (jpeg_bytes, frame_bgr). frame_bgr is for change detection; can be None to skip.
     """
     with mss.mss() as sct:
-        # Try primary physical monitor (1) first, then 0 (all-in-one)
         order = [1, 0] if len(sct.monitors) > 1 else [0]
         frame = None
         for idx in order:
@@ -36,11 +41,9 @@ def capture_frame(quality: int = JPEG_QUALITY, max_width: int = DEFAULT_WIDTH, m
             if _frame_mean_brightness(frame) >= 10:
                 break
         if frame is None:
-            frame = np.zeros((max_height, max_width, 3), dtype=np.uint8)  # fallback
+            frame = np.zeros((max_height, max_width, 3), dtype=np.uint8)
 
-    height, width = frame.shape[:2]
-    frame = cv2.resize(frame, (max_width, max_height), interpolation=cv2.INTER_AREA)
-
+    frame = cv2.resize(frame, (max_width, max_height), interpolation=cv2.INTER_LINEAR)
     encode_params = [cv2.IMWRITE_JPEG_QUALITY, quality]
     _, jpeg_bytes = cv2.imencode(".jpg", frame, encode_params)
-    return jpeg_bytes.tobytes()
+    return jpeg_bytes.tobytes(), frame

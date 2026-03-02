@@ -114,6 +114,18 @@ remote-desktop/
 - **Host**: grant screen capture and accessibility/input permissions when prompted (macOS/Windows).
 - **Client**: focus the OpenCV window so key presses are sent to the host.
 
+## Quality and performance
+
+Stream is **1920×1080** at up to **60 FPS** with JPEG quality 82. The host skips sending when the screen is unchanged to save bandwidth. To use a different resolution (e.g. 1280×720 for slower networks), edit `shared/stream_config.py` and set `STREAM_WIDTH` and `STREAM_HEIGHT`; use the same values on host and client.
+
+## Troubleshooting: "No route to host" or can't connect
+
+- **Same network:** Both computers must be on the same Wi‑Fi or LAN (not guest network vs main).
+- **Firewall on the computer running the host:** Allow inbound TCP port **8765**.
+  - **Windows:** Windows Security → Firewall → Allow an app → allow **Python**, or add inbound rule for port 8765.
+  - **Mac:** System Settings → Network → Firewall → allow Terminal/Python.
+- **Check the host IP:** On the host run `python -m host.main show-ip` and use one of the IPs when connecting.
+
 ## Running tests
 
 With dependencies installed (e.g. in the project venv):
