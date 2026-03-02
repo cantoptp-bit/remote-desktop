@@ -7,8 +7,8 @@ import mss
 
 from shared.stream_config import STREAM_WIDTH, STREAM_HEIGHT
 
-# Quality: 82 for sharper image (was 70)
-JPEG_QUALITY = 82
+# Quality: 98 for best clarity — minimal compression, sharp text/icons, no blur or blockiness
+JPEG_QUALITY = 98
 
 
 def _frame_mean_brightness(frame):
@@ -25,9 +25,11 @@ def _frame_hash(frame, size=64):
 
 def capture_frame(quality: int = JPEG_QUALITY, max_width: int = STREAM_WIDTH, max_height: int = STREAM_HEIGHT):
     """
-    Capture the primary screen, scale to stream size, encode as JPEG.
+    Capture the primary screen, scale to exactly stream size (never above 1920×1080), encode as JPEG.
     Returns (jpeg_bytes, frame_bgr). frame_bgr is for change detection; can be None to skip.
     """
+    max_width = min(max_width, STREAM_WIDTH)
+    max_height = min(max_height, STREAM_HEIGHT)
     with mss.mss() as sct:
         order = [1, 0] if len(sct.monitors) > 1 else [0]
         frame = None
@@ -43,7 +45,13 @@ def capture_frame(quality: int = JPEG_QUALITY, max_width: int = STREAM_WIDTH, ma
         if frame is None:
             frame = np.zeros((max_height, max_width, 3), dtype=np.uint8)
 
-    frame = cv2.resize(frame, (max_width, max_height), interpolation=cv2.INTER_LINEAR)
+    h, w = frame.shape[:2]
+    # Sharper resize: LANCZOS when downscaling (e.g. 4K→1080p), CUBIC when upscaling
+    if w > max_width or h > max_height:
+        interp = cv2.INTER_LANCZOS4  # best quality when shrinking
+    else:
+        interp = cv2.INTER_CUBIC     # smooth when enlarging
+    frame = cv2.resize(frame, (max_width, max_height), interpolation=interp)
     encode_params = [cv2.IMWRITE_JPEG_QUALITY, quality]
     _, jpeg_bytes = cv2.imencode(".jpg", frame, encode_params)
     return jpeg_bytes.tobytes(), frame

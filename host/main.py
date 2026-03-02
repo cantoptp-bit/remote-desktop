@@ -17,7 +17,7 @@ from host.capture import capture_frame, _frame_hash
 from host.input_injector import inject_event, STREAM_WIDTH, STREAM_HEIGHT
 
 DEFAULT_PORT = 8765
-FPS = 60  # Target frames per second
+FPS = 60  # Fixed 60 FPS for smooth cursor and low lag; keep in sync with stream 1920×1080
 
 
 def input_receiver_loop(conn: socket.socket) -> None:
@@ -118,6 +118,7 @@ def main() -> None:
         print(f"Host listening on 0.0.0.0:{port}. Start the client on your other computer and connect to this PC's IP.")
 
     conn, addr = server.accept()
+    conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # reduce lag: send frames immediately
     print(f"Client connected from {addr}")
     # Two threads: one sends frames, one receives input
     t1 = threading.Thread(target=frame_sender_loop, args=(conn,), daemon=True)

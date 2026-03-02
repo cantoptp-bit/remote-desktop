@@ -121,6 +121,7 @@ def main() -> None:
         print("To connect to this machine anyway (e.g. for testing), run with: --allow-localhost")
         sys.exit(1)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # send immediately, less lag
     try:
         sock.connect((host, port))
     except OSError as e:

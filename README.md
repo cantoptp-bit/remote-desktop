@@ -35,6 +35,8 @@ Then:
 
 Grant **Screen Recording** and **Accessibility** (Input Monitoring) when macOS asks. Press **q** or **Escape** in the client window to quit.
 
+**Stream:** Fixed **1920×1080** at **60 FPS** for best icon clarity and low lag when moving the cursor and opening windows.
+
 ## Usage
 
 ### 1. On the PC you want to control (Windows or Mac)
