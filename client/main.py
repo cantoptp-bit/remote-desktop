@@ -15,6 +15,7 @@ import numpy as np
 
 from client.display import recv_frame, DISPLAY_WIDTH, DISPLAY_HEIGHT
 from client.input_sender import install_mouse_callback, key_to_event
+from client.computers_config import load as load_computers, add as add_computer
 
 DEFAULT_PORT = 8765
 WINDOW_NAME = "Remote Desktop"
@@ -56,14 +57,62 @@ def _is_localhost(host):
     return host in ("127.0.0.1", "localhost", "::1") or host.startswith("127.")
 
 
+def _choose_computer():
+    """Show saved computers list; return (host, port) or (None, None) if quit/empty."""
+    computers = load_computers()
+    if not computers:
+        print("No saved computers. Add one with:")
+        print('  python -m client.main add "My PC" 192.168.1.100')
+        print("Or connect directly: python -m client.main 192.168.1.100")
+        return None, None
+    print("Saved computers:")
+    for i, c in enumerate(computers, 1):
+        print(f"  {i}. {c['name']}  ({c['host']}:{c['port']})")
+    print("  q. Quit")
+    while True:
+        try:
+            choice = input("Choose number (or q): ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return None, None
+        if choice == "q" or choice == "":
+            return None, None
+        try:
+            idx = int(choice)
+            if 1 <= idx <= len(computers):
+                c = computers[idx - 1]
+                return c["host"], c["port"]
+        except ValueError:
+            pass
+        print("Invalid choice. Enter a number or q.")
+
+
 def main() -> None:
-    if len(sys.argv) < 2:
-        print("Usage: python -m client.main <host_ip> [port]")
-        print("Example: python -m client.main 192.168.1.100 8765")
-        print("  Use the other computer's IP (run the host on that PC). Wired or Wi-Fi both work.")
-        sys.exit(1)
-    host = sys.argv[1].strip()
-    port = int(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_PORT
+    args = [a for a in sys.argv[1:] if a != "--allow-localhost"]
+    if not args:
+        host, port = _choose_computer()
+        if host is None:
+            sys.exit(0)
+    elif args[0].lower() == "add":
+        if len(args) < 3:
+            print('Usage: python -m client.main add "Computer Name" <host_ip> [port]')
+            sys.exit(1)
+        name, host = args[1], args[2]
+        port = int(args[3]) if len(args) > 3 else DEFAULT_PORT
+        add_computer(name, host, port)
+        print(f'Added "{name}" at {host}:{port}.')
+        return
+    elif args[0].lower() == "list":
+        computers = load_computers()
+        if not computers:
+            print("No saved computers. Add with: python -m client.main add \"Name\" <ip>")
+            sys.exit(0)
+        for i, c in enumerate(computers, 1):
+            print(f"  {i}. {c['name']}  {c['host']}:{c['port']}")
+        sys.exit(0)
+    else:
+        host = args[0].strip()
+        port = int(args[1]) if len(args) > 1 else DEFAULT_PORT
+    allow_local = "--allow-localhost" in sys.argv
     allow_local = "--allow-localhost" in sys.argv
     if _is_localhost(host) and not allow_local:
         print("You're connecting to this computer (localhost).")
@@ -83,7 +132,6 @@ def main() -> None:
     cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(window_title, DISPLAY_WIDTH, DISPLAY_HEIGHT + 28)  # extra for status bar
     install_mouse_callback(window_title, sock)
-    install_mouse_callback(WINDOW_NAME, sock)
     latest_frame_ref = [None]
     frame_ready = threading.Condition()
     recv_thread = threading.Thread(

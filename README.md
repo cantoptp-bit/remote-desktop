@@ -72,6 +72,24 @@ python -m client.main 192.168.1.100 9000
 - The remote screen appears in a window. Use mouse and keyboard in that window to control the host.
 - Press **q** or **Escape** in the client window to quit.
 
+### 3. Saved computers (no need to type the IP each time)
+
+Add computers to a list, then pick one when you run the client:
+
+```bash
+# Add a computer (name + IP, optional port)
+python -m client.main add "Office PC" 192.168.1.100
+python -m client.main add "Living Room" 192.168.1.101 8765
+
+# List saved computers
+python -m client.main list
+
+# Run client with no args: choose from the list
+python -m client.main
+```
+
+The list is stored in `computers.json` in the project folder. You can still connect by IP: `python -m client.main 192.168.1.100`.
+
 ## Project layout
 
 ```
